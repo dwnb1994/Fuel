@@ -1,0 +1,1658 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Thaidrill Laos · Fuel Cost Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&family=Prompt:wght@600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Sarabun', sans-serif;
+    background: linear-gradient(135deg, #f0f4f8 0%, #e2e8f0 100%);
+    color: #1e293b;
+    min-height: 100vh;
+    padding-bottom: 40px;
+  }
+
+  /* ========== HEADER ========== */
+  .header {
+    background: linear-gradient(135deg, #0c2461 0%, #1e3799 50%, #0a3d62 100%);
+    color: white;
+    padding: 18px 32px;
+    box-shadow: 0 6px 20px rgba(12, 36, 97, 0.3);
+    position: relative;
+    overflow: hidden;
+  }
+  .header::before {
+    content: '';
+    position: absolute;
+    top: -50%; right: -10%;
+    width: 400px; height: 400px;
+    background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .header-content { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; position: relative; z-index: 1; }
+  .brand { display: flex; align-items: center; gap: 16px; }
+  .brand-icon {
+    width: 52px; height: 52px;
+    background: linear-gradient(135deg, #fbbf24, #f59e0b);
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 28px;
+    box-shadow: 0 4px 14px rgba(251, 191, 36, 0.4);
+  }
+  .brand-text h1 {
+    font-family: 'Prompt', sans-serif;
+    font-size: 22px; font-weight: 800;
+    letter-spacing: 0.3px;
+    line-height: 1.1;
+  }
+  .brand-text .subtitle {
+    font-size: 12px; opacity: 0.9; margin-top: 3px; font-weight: 400;
+  }
+  .header-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .btn {
+    padding: 8px 16px; border-radius: 8px; border: none;
+    font-family: 'Sarabun', sans-serif; font-size: 13px; font-weight: 600;
+    cursor: pointer; transition: all 0.2s;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .btn-primary { background: rgba(255,255,255,0.15); color: white; backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.2); }
+  .btn-primary:hover { background: rgba(255,255,255,0.25); transform: translateY(-1px); }
+  .btn-success { background: #10b981; color: white; }
+  .btn-success:hover { background: #059669; }
+  .btn-warning { background: #f59e0b; color: white; }
+  .btn-warning:hover { background: #d97706; }
+  .btn-info { background: #3b82f6; color: white; }
+  .btn-info:hover { background: #2563eb; }
+  .btn-dark { background: #1e293b; color: white; }
+  .btn-dark:hover { background: #0f172a; }
+
+  /* ========== TABS ========== */
+  .tabs-bar {
+    background: white;
+    padding: 0 32px;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex; gap: 4px; overflow-x: auto;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  }
+  .tab {
+    padding: 14px 18px;
+    border: none; background: none;
+    font-family: 'Sarabun', sans-serif; font-size: 14px; font-weight: 600;
+    color: #64748b; cursor: pointer;
+    border-bottom: 3px solid transparent;
+    transition: all 0.2s;
+    white-space: nowrap;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .tab:hover { color: #1e3799; background: #f8fafc; }
+  .tab.active { color: #1e3799; border-bottom-color: #1e3799; }
+
+  /* ========== FILTER BAR ========== */
+  .filter-bar {
+    background: white; padding: 14px 32px;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+  }
+  .filter-group { display: flex; align-items: center; gap: 8px; }
+  .filter-label { font-size: 13px; color: #64748b; font-weight: 600; }
+  .filter-select {
+    padding: 6px 12px; border: 1px solid #cbd5e1; border-radius: 6px;
+    font-family: 'Sarabun', sans-serif; font-size: 13px;
+    background: white; cursor: pointer; min-width: 100px;
+  }
+  .badge {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    color: white; padding: 6px 14px; border-radius: 20px;
+    font-size: 12px; font-weight: 700; margin-left: auto;
+    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+  }
+
+  /* ========== CONTENT ========== */
+  .content { padding: 24px 32px; }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; animation: fadeIn 0.3s ease; }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ========== KPI CARDS ========== */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .kpi-card {
+    background: white;
+    border-radius: 14px;
+    padding: 20px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+    border-left: 5px solid;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s;
+  }
+  .kpi-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,0.1); }
+  .kpi-card.ntp { border-left-color: #3b82f6; }
+  .kpi-card.lxml { border-left-color: #f59e0b; }
+  .kpi-card.save { border-left-color: #8b5cf6; }
+  .kpi-card.alert { border-left-color: #ef4444; background: linear-gradient(135deg, #fef2f2, #fee2e2); }
+  .kpi-icon {
+    position: absolute; right: 16px; top: 16px;
+    font-size: 36px; opacity: 0.2;
+  }
+  .kpi-label {
+    font-size: 13px; color: #64748b; font-weight: 600;
+    display: flex; align-items: center; gap: 6px;
+    margin-bottom: 8px;
+  }
+  .kpi-value {
+    font-family: 'Prompt', sans-serif;
+    font-size: 30px; font-weight: 800;
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+  .kpi-card.ntp .kpi-value { color: #3b82f6; }
+  .kpi-card.lxml .kpi-value { color: #f59e0b; }
+  .kpi-card.save .kpi-value { color: #8b5cf6; }
+  .kpi-card.alert .kpi-value { color: #dc2626; }
+  .kpi-sub { font-size: 12px; color: #64748b; margin-bottom: 8px; }
+  .kpi-status {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 11px; font-weight: 700;
+  }
+  .status-good { background: #d1fae5; color: #065f46; }
+  .status-warn { background: #fed7aa; color: #9a3412; }
+  .status-bad { background: #fecaca; color: #991b1b; }
+  
+  .loading-text { font-size: 16px; color: #94a3b8; font-weight: normal; font-family: 'Sarabun'; }
+
+  /* ========== CHART CARDS ========== */
+  .chart-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  .chart-card {
+    background: white;
+    border-radius: 14px;
+    padding: 20px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+    transition: all 0.3s;
+  }
+  .chart-card:hover { box-shadow: 0 6px 20px rgba(0,0,0,0.1); }
+  .chart-title {
+    font-family: 'Prompt', sans-serif;
+    font-size: 16px; font-weight: 700;
+    color: #ef4444;
+    margin-bottom: 16px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .chart-container { position: relative; height: 280px; }
+
+  /* ========== TABLES ========== */
+  .data-table {
+    background: white;
+    border-radius: 14px;
+    padding: 20px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+    overflow-x: auto;
+  }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead tr {
+    background: linear-gradient(135deg, #1e3799, #0c2461);
+    color: white;
+  }
+  th { padding: 12px 10px; text-align: left; font-weight: 600; font-size: 12px; }
+  td { padding: 10px; border-bottom: 1px solid #f1f5f9; }
+  tbody tr:hover { background: #f8fafc; }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; font-weight: 500; }
+  td.center { text-align: center; }
+  .pill {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 10px;
+    font-size: 11px; font-weight: 700;
+  }
+  .pill-lxml { background: #fed7aa; color: #9a3412; }
+  .pill-ntp { background: #dbeafe; color: #1e40af; }
+  .pill-save { background: #d1fae5; color: #065f46; }
+  .pill-loss { background: #fecaca; color: #991b1b; }
+
+  /* ========== INPUT GROUPS ========== */
+  .input-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+  .input-card {
+    background: white; border-radius: 12px; padding: 18px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    border-left: 4px solid #3b82f6;
+  }
+  .input-card label {
+    display: block; font-size: 12px; color: #64748b; font-weight: 600; margin-bottom: 6px;
+  }
+  .input-card input {
+    width: 100%; padding: 10px 12px;
+    border: 2px solid #e2e8f0; border-radius: 8px;
+    font-family: 'Sarabun', sans-serif; font-size: 18px; font-weight: 700;
+    color: #1e3799;
+    transition: border-color 0.2s;
+  }
+  .input-card input:focus { outline: none; border-color: #3b82f6; }
+  .input-card .hint { font-size: 11px; color: #94a3b8; margin-top: 6px; }
+
+  /* ========== SECTION TITLE ========== */
+  .section-title {
+    font-family: 'Prompt', sans-serif;
+    font-size: 18px; font-weight: 700;
+    color: #0c2461;
+    margin: 20px 0 12px;
+    display: flex; align-items: center; gap: 8px;
+    padding-left: 12px;
+    border-left: 4px solid #f59e0b;
+  }
+
+  /* ========== ALERT BOX ========== */
+  .alert-box {
+    background: linear-gradient(135deg, #dbeafe, #eff6ff);
+    border-left: 4px solid #3b82f6;
+    padding: 14px 18px;
+    border-radius: 10px;
+    margin-bottom: 16px;
+    font-size: 13px;
+    color: #1e40af;
+  }
+  .alert-box.warning {
+    background: linear-gradient(135deg, #fef3c7, #fffbeb);
+    border-left-color: #f59e0b;
+    color: #92400e;
+  }
+  .alert-box.success {
+    background: linear-gradient(135deg, #d1fae5, #ecfdf5);
+    border-left-color: #10b981;
+    color: #065f46;
+  }
+
+  /* ========== CHECKPOINT BOX ========== */
+  .checkpoint {
+    background: linear-gradient(135deg, #1e3799, #0c2461);
+    color: white;
+    border-radius: 12px;
+    padding: 18px;
+    margin-bottom: 14px;
+  }
+  .checkpoint h4 {
+    font-family: 'Prompt', sans-serif;
+    font-size: 16px; font-weight: 700;
+    margin-bottom: 12px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .checkpoint .cp-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 10px;
+  }
+  .checkpoint .cp-item {
+    background: rgba(255,255,255,0.1);
+    padding: 10px 12px; border-radius: 8px;
+    backdrop-filter: blur(10px);
+  }
+  .checkpoint .cp-label { font-size: 11px; opacity: 0.8; margin-bottom: 4px; }
+  .checkpoint .cp-value { font-size: 18px; font-weight: 700; font-family: 'Prompt', sans-serif; }
+
+  /* ========== RECOMMENDATION BOX ========== */
+  .rec-list { list-style: none; padding: 0; }
+  .rec-list li {
+    background: white;
+    padding: 14px 18px;
+    border-radius: 10px;
+    margin-bottom: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    border-left: 4px solid #10b981;
+    font-size: 14px;
+    display: flex; align-items: flex-start; gap: 10px;
+  }
+  .rec-list li:nth-child(even) { border-left-color: #3b82f6; }
+  .rec-list li .num {
+    background: linear-gradient(135deg, #1e3799, #0c2461);
+    color: white;
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700; flex-shrink: 0;
+  }
+
+  /* ========== UTILITIES ========== */
+  .text-up { color: #10b981; }
+  .text-down { color: #ef4444; }
+  .mt-3 { margin-top: 12px; }
+  .mt-4 { margin-top: 16px; }
+  .bold { font-weight: 700; }
+
+  /* ========== PRINT ========== */
+  @media print {
+    .header-actions, .tabs-bar, .filter-bar { display: none; }
+    .tab-panel { display: block !important; page-break-after: always; }
+    body { background: white; }
+  }
+
+  /* ========== RESPONSIVE ========== */
+  @media (max-width: 768px) {
+    .header, .tabs-bar, .filter-bar, .content { padding-left: 16px; padding-right: 16px; }
+    .brand-text h1 { font-size: 16px; }
+    .chart-grid { grid-template-columns: 1fr; }
+    .kpi-value { font-size: 24px; }
+  }
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-content">
+    <div class="brand">
+      <div class="brand-icon">⛽</div>
+      <div class="brand-text">
+        <h1>Thaidrill Laos · Fuel Cost Dashboard</h1>
+        <div class="subtitle">ระบบเปรียบเทียบต้นทุนน้ำมัน LXML vs NTP · หน้างานเซโปน</div>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-primary" onclick="fetchAllData()">🔄 ดึงข้อมูลล่าสุดทั้งหมด</button>
+      <button class="btn btn-success" onclick="exportCSV()">📊 Export CSV</button>
+      <button class="btn btn-warning" onclick="backupData()">💾 Backup</button>
+      <button class="btn btn-info" onclick="document.getElementById('restoreFile').click()">📂 Restore</button>
+      <input type="file" id="restoreFile" accept=".json" style="display:none" onchange="restoreData(event)">
+      <button class="btn btn-dark" onclick="window.print()">🖨️ พิมพ์</button>
+    </div>
+  </div>
+</header>
+
+<nav class="tabs-bar">
+  <button class="tab active" onclick="switchTab(this, 'overview')">📊 ภาพรวม</button>
+  <button class="tab" onclick="switchTab(this, 'prices')">💰 ราคา & คำนวณ</button>
+  <button class="tab" onclick="switchTab(this, 'weekly')">📅 กลยุทธ์รายสัปดาห์</button>
+  <button class="tab" onclick="switchTab(this, 'monthend')">💵 สรุปสิ้นเดือน</button>
+  <button class="tab" onclick="switchTab(this, 'mining')">🎯 Mining Plan</button>
+  <button class="tab" onclick="switchTab(this, 'manual')">📖 คู่มือ</button>
+</nav>
+
+<div class="filter-bar">
+  <div class="filter-group">
+    <span style="font-size:18px;">🗓️</span>
+    <span class="filter-label">ช่วงเวลา:</span>
+    <select class="filter-select" id="yearSelect">
+      <option>2569</option>
+      <option>2568</option>
+      <option>2567</option>
+    </select>
+    <span class="filter-label">เดือน</span>
+    <select class="filter-select" id="monthSelect">
+      <option value="5">พฤษภาคม</option>
+      <option value="6" selected>มิถุนายน</option>
+      <option value="7">กรกฎาคม</option>
+    </select>
+    <span class="filter-label">หน้างาน</span>
+    <select class="filter-select" id="siteSelect">
+      <option>เซโปน (ทั้งหมด)</option>
+      <option>เซโปน Pit A</option>
+      <option>เซโปน Pit B</option>
+    </select>
+  </div>
+  <div class="badge">📅 มิถุนายน 2569</div>
+</div>
+
+<main class="content">
+
+  <section id="overview" class="tab-panel active">
+    <div class="kpi-grid">
+      <div class="kpi-card ntp">
+        <div class="kpi-icon">⛽</div>
+        <div class="kpi-label">🔵 NTP</div>
+        <div class="kpi-value" id="kpiNTP">$1.2650</div>
+        <div class="kpi-sub" id="kpiNTPSub">USD/ลิตร · Effective รวม Markup 2%: $1.2903</div>
+        <span class="kpi-status status-good" id="kpiNTPStatus">✓ ถูกกว่า</span>
+      </div>
+      <div class="kpi-card lxml">
+        <div class="kpi-icon">🛢️</div>
+        <div class="kpi-label">🟡 เชื้อไฟลาว</div>
+        <div class="kpi-value" id="kpiLXML">$1.3374</div>
+        <div class="kpi-sub" id="kpiLXMLSub">USD/ลิตร · ราคาเชื้อไฟลาว</div>
+        <span class="kpi-status status-warn" id="kpiLXMLStatus">⚠ แพงกว่า NTP</span>
+      </div>
+      <div class="kpi-card lxml">
+        <div class="kpi-icon">🛢️</div>
+        <div class="kpi-label">🟡 PV Oil</div>
+        <div class="kpi-value" id="kpiPVOil">$1.3374</div>
+        <div class="kpi-sub" id="kpiPVOilSub">USD/ลิตร · ราคา PV Oil</div>
+        <span class="kpi-status status-warn" id="kpiPVOilStatus">⚠ แพงกว่า NTP</span>
+      </div>
+      <div class="kpi-card save">
+        <div class="kpi-icon">💰</div>
+        <div class="kpi-label">🟣 ประหยัด (ถูกสุด vs รองลงมา)</div>
+        <div class="kpi-value" id="kpiSave">$0</div>
+        <div class="kpi-sub" id="kpiSaveSub">คำนวณตามจำนวนวัน</div>
+        <span class="kpi-status status-good" id="kpiSaveStatus">✓ เลือกถูกสุด</span>
+      </div>
+      
+      <div class="kpi-card alert" id="stockCard">
+        <div class="kpi-icon">⚠️</div>
+        <div class="kpi-label">⚡ สต็อกน้ำมันคงเหลือ (Daily Log N36)</div>
+        <div class="kpi-value" id="kpiStock"><span class="loading-text">กำลังโหลด...</span></div>
+        <div class="kpi-sub" id="kpiStockSub">ลิตร · คำนวณวันใช้งาน (@48,500 L/วัน)</div>
+        <span class="kpi-status" id="kpiStockStatus">กำลังเชื่อมต่อ...</span>
+      </div>
+    </div>
+
+    <div class="chart-grid">
+      <div class="chart-card">
+        <div class="chart-title">📈 ต้นทุนต่อลิตร เชื้อไฟลาว vs NTP vs PV Oil (30 วันย้อนหลัง)</div>
+        <div class="chart-container"><canvas id="lineChart"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">🍩 สัดส่วนคำสั่งซื้อแยก Supplier (เดือนนี้)</div>
+        <div class="chart-container"><canvas id="donutChart"></canvas></div>
+      </div>
+    </div>
+
+    <div class="chart-grid">
+      <div class="chart-card">
+        <div class="chart-title">🥧 แยกตามรอบราคา (Mon-LXML / Thu-NTP)</div>
+        <div class="chart-container"><canvas id="pieChart"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">📊 ปริมาณเบิกน้ำมันรายวัน (ลิตร)</div>
+        <div class="chart-container"><canvas id="barChart"></canvas></div>
+      </div>
+    </div>
+
+    <div class="section-title">📋 สรุปประหยัดตามสถานการณ์</div>
+    <div class="data-table">
+      <table>
+        <thead>
+          <tr>
+            <th>สถานการณ์</th>
+            <th class="num">ปริมาณ (L/วัน)</th>
+            <th class="num">LXML/วัน (USD)</th>
+            <th class="num">NTP/วัน (USD)</th>
+            <th class="num">ประหยัด/วัน</th>
+            <th class="num">ประหยัด/เดือน</th>
+            <th class="center">สถานะ</th>
+          </tr>
+        </thead>
+        <tbody id="scenarioTable"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="prices" class="tab-panel">
+    <div class="alert-box">
+      💡 ปรับเซลล์ราคาด้านล่าง — ระบบจะคำนวณต้นทุนและกราฟทั้งหมดอัตโนมัติ พร้อมบันทึกใน Browser
+    </div>
+
+    <div class="section-title">💵 ป้อนราคาน้ำมัน (USD/ลิตร · รวม VAT 10%)</div>
+    <div class="input-grid">
+      <div class="input-card" style="border-left-color:#3b82f6">
+        <label>🔵 NTP — ราคาน้ำมัน</label>
+        <input type="number" step="0.0001" id="priceNTP" value="1.2650">
+        <div class="hint">ปรับทุกวันพฤหัส · NTP Direct</div>
+      </div>
+      <div class="input-card" style="border-left-color:#f59e0b">
+        <label>🟡 PV Oil — ราคาน้ำมัน (LXML)</label>
+        <input type="number" step="0.0001" id="pricePV" value="1.3374">
+        <div class="hint">LXML · PV Oil</div>
+      </div>
+      <div class="input-card" style="border-left-color:#f59e0b">
+        <label>🟡 เชื้อไฟลาว — ราคาน้ำมัน (LXML)</label>
+        <input type="number" step="0.0001" id="priceEucalyptus" value="1.3374">
+        <div class="hint">LXML · เชื้อไฟลาว</div>
+      </div>
+      <div class="input-card" style="border-left-color:#8b5cf6">
+        <label>🟣 Markup LXML (Admin Fee)</label>
+        <input type="number" step="0.01" id="markup" value="2.00">
+        <div class="hint">% Markup ของราคา NTP</div>
+      </div>
+      <div class="input-card" style="border-left-color:#10b981">
+        <label>📊 ปริมาณใช้/วัน — ต่ำสุด (ลิตร)</label>
+        <input type="number" step="100" id="volMin" value="45000">
+        <div class="hint">Min ปริมาณใช้หน้างาน</div>
+      </div>
+      <div class="input-card" style="border-left-color:#10b981">
+        <label>📊 ปริมาณใช้/วัน — เฉลี่ย (ลิตร)</label>
+        <input type="number" step="100" id="volAvg" value="48500">
+        <div class="hint">ค่าเฉลี่ยใช้คำนวณกลาง</div>
+      </div>
+      <div class="input-card" style="border-left-color:#10b981">
+        <label>📊 ปริมาณใช้/วัน — สูงสุด (ลิตร)</label>
+        <input type="number" step="100" id="volMax" value="52000">
+        <div class="hint">Max ปริมาณใช้หน้างาน</div>
+      </div>
+      <div class="input-card" style="border-left-color:#8b5cf6">
+        <label>📅 จำนวนวัน (สำหรับคำนวณประหยัด)</label>
+        <input type="number" step="1" id="numDays" value="30">
+        <div class="hint">คูณกับปริมาณเฉลี่ย/วัน เพื่อหายอดประหยัด</div>
+      </div>
+      <div class="input-card" style="border-left-color:#ef4444">
+        <label>📦 สต็อกคงเหลือเริ่มต้น (ลิตร)</label>
+        <input type="number" step="1000" id="openingStock" value="244019">
+        <div class="hint">Opening Balance สิ้นเดือนก่อน</div>
+      </div>
+    </div>
+
+    <div class="section-title">🧮 ผลการคำนวณ (Effective Landed Cost)</div>
+    <div class="data-table">
+      <table>
+        <thead>
+          <tr>
+            <th>รายการ</th>
+            <th>สูตร</th>
+            <th class="num">ค่า (USD/L)</th>
+            <th>หน่วย</th>
+            <th class="center">ข้อสรุป</th>
+          </tr>
+        </thead>
+        <tbody id="calcTable"></tbody>
+      </table>
+    </div>
+
+    <div class="section-title">💎 มูลค่าส่วนต่างที่ปริมาณต่างๆ</div>
+    <div class="data-table">
+      <table>
+        <thead>
+          <tr>
+            <th class="num">จำนวนสั่ง (ลิตร)</th>
+            <th class="num">ส่วนต่าง/L</th>
+            <th class="num">ประหยัดรวม (USD)</th>
+            <th class="num">% ประหยัด</th>
+            <th class="center">สถานะ</th>
+          </tr>
+        </thead>
+        <tbody id="volTable"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="weekly" class="tab-panel">
+    <div class="alert-box warning">
+      ⭐ <b>Checkpoint การตัดสินใจ</b>: จันทร์ = LXML ปรับราคาใหม่ | พฤหัส = NTP ปรับราคาใหม่
+    </div>
+
+    <div class="checkpoint">
+      <h4>⭐ CHECKPOINT 1 — วันจันทร์: LXML ประกาศราคาใหม่</h4>
+      <div class="cp-grid">
+        <div class="cp-item">
+          <div class="cp-label">LXML Landed (รวม VAT)</div>
+          <div class="cp-value" id="cp1Lxml">$1.3374</div>
+        </div>
+        <div class="cp-item">
+          <div class="cp-label">NTP Effective (เดิม)</div>
+          <div class="cp-value" id="cp1Ntp">$1.2903</div>
+        </div>
+        <div class="cp-item" style="background:rgba(251,191,36,0.3)">
+          <div class="cp-label">คำแนะนำ</div>
+          <div class="cp-value" id="cp1Rec" style="font-size:14px">สั่ง NTP 100%</div>
+        </div>
+        <div class="cp-item">
+          <div class="cp-label">ปริมาณ Mon-Wed</div>
+          <div class="cp-value" id="cp1Vol">145,500 L</div>
+        </div>
+        <div class="cp-item">
+          <div class="cp-label">มูลค่ารวม</div>
+          <div class="cp-value" id="cp1Val">$187,739</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="checkpoint">
+      <h4>⭐ CHECKPOINT 2 — วันพฤหัส: NTP ประกาศราคาใหม่</h4>
+      <div class="cp-grid">
+        <div class="cp-item">
+          <div class="cp-label">NTP Effective (ใหม่)</div>
+          <div class="cp-value" id="cp2Ntp">$1.2903</div>
+        </div>
+        <div class="cp-item">
+          <div class="cp-label">LXML Landed (จากจันทร์)</div>
+          <div class="cp-value" id="cp2Lxml">$1.3374</div>
+        </div>
+        <div class="cp-item" style="background:rgba(251,191,36,0.3)">
+          <div class="cp-label">คำแนะนำ</div>
+          <div class="cp-value" id="cp2Rec" style="font-size:14px">สั่ง NTP 100%</div>
+        </div>
+        <div class="cp-item">
+          <div class="cp-label">ปริมาณ Thu-Sun</div>
+          <div class="cp-value" id="cp2Vol">194,000 L</div>
+        </div>
+        <div class="cp-item">
+          <div class="cp-label">มูลค่ารวม</div>
+          <div class="cp-value" id="cp2Val">$250,318</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-title">📅 ปฏิทินรอบราคารายสัปดาห์</div>
+    <div class="data-table">
+      <table>
+        <thead>
+          <tr>
+            <th>วัน</th>
+            <th>รอบราคา</th>
+            <th>Checkpoint</th>
+            <th>คำอธิบาย</th>
+            <th class="num">ปริมาณ (ลิตร)</th>
+          </tr>
+        </thead>
+        <tbody id="weeklyTable"></tbody>
+      </table>
+    </div>
+
+    <div class="section-title">💰 สรุปประมาณการรายสัปดาห์</div>
+    <div class="kpi-grid">
+      <div class="kpi-card ntp">
+        <div class="kpi-label">Mon-Wed (3 วัน)</div>
+        <div class="kpi-value" id="weekMonWed">$187,739</div>
+        <div class="kpi-sub">145,500 ลิตร · NTP 100%</div>
+      </div>
+      <div class="kpi-card ntp">
+        <div class="kpi-label">Thu-Sun (4 วัน)</div>
+        <div class="kpi-value" id="weekThuSun">$250,318</div>
+        <div class="kpi-sub">194,000 ลิตร · NTP 100%</div>
+      </div>
+      <div class="kpi-card save">
+        <div class="kpi-label">รวมต่อสัปดาห์</div>
+        <div class="kpi-value" id="weekTotal">$438,057</div>
+        <div class="kpi-sub">339,500 ลิตร · 7 วัน</div>
+      </div>
+    </div>
+  </section>
+
+  <section id="monthend" class="tab-panel">
+    <div class="alert-box">
+      📋 <b>Executive Summary</b>: ยอดสั่งน้ำมันรวมเดือนนี้ → แยก Supplier → ยอดที่ LXML หักจากค่างาน Thaidrill ปลายเดือน
+    </div>
+
+    <div class="section-title">💵 ยอดหักค่างานแยก Supplier</div>
+    <div class="data-table">
+      <table>
+        <thead>
+          <tr>
+            <th>รายการ</th>
+            <th class="num">ปริมาณสั่ง (L)</th>
+            <th class="num">มูลค่าน้ำมัน</th>
+            <th class="num">Markup 2%</th>
+            <th class="num">ยอดหักรวม</th>
+            <th>หมายเหตุ</th>
+          </tr>
+        </thead>
+        <tbody id="monthEndTable"></tbody>
+      </table>
+    </div>
+
+    <div class="section-title">📊 เทียบต้นทุนน้ำมัน vs รายได้งานเซโปน</div>
+    <div class="input-grid">
+      <div class="input-card">
+        <label>💰 รายได้ต่อฟีด (USD)</label>
+        <input type="number" step="100" id="revPerFeed" value="8400">
+        <div class="hint">15 ฟีด × $2.10 × 4,000 คิว</div>
+      </div>
+      <div class="input-card">
+        <label>📦 จำนวนฟีด/เดือน</label>
+        <input type="number" step="1" id="feedCount" value="15">
+        <div class="hint">ปรับตามจริงได้</div>
+      </div>
+    </div>
+
+    <div class="kpi-grid">
+      <div class="kpi-card save">
+        <div class="kpi-label">💵 รายได้รวมเดือนนี้</div>
+        <div class="kpi-value" id="totalRev">$126,000</div>
+        <div class="kpi-sub">รายได้ต่อฟีด × จำนวนฟีด</div>
+      </div>
+      <div class="kpi-card lxml">
+        <div class="kpi-label">⛽ ยอดหักน้ำมันรวม</div>
+        <div class="kpi-value" id="totalFuel">$0</div>
+        <div class="kpi-sub">ดึงจากสถานะการสั่งซื้อ</div>
+      </div>
+      <div class="kpi-card ntp">
+        <div class="kpi-label">📊 สัดส่วนน้ำมัน/รายได้</div>
+        <div class="kpi-value" id="fuelRatio">0.0%</div>
+        <div class="kpi-sub">% ต้นทุนน้ำมันต่อรายได้</div>
+      </div>
+      <div class="kpi-card save">
+        <div class="kpi-label">💰 รายได้สุทธิหลังหักน้ำมัน</div>
+        <div class="kpi-value" id="netRev">$126,000</div>
+        <div class="kpi-sub">เงินคงเหลือหลังจ่ายน้ำมัน</div>
+      </div>
+    </div>
+  </section>
+
+  <section id="mining" class="tab-panel">
+    <div class="alert-box warning">
+      🎯 <b>Mining Plan</b>: แผนใช้น้ำมัน 300,000–350,000 ลิตร/สัปดาห์ · Lead Time 2 สัปดาห์ · Buffer 1.0–1.5 สัปดาห์
+    </div>
+
+    <div class="section-title">📊 ประมาณการต้นทุนตาม Mining Plan</div>
+    <div class="data-table">
+      <table>
+        <thead>
+          <tr>
+            <th>สถานการณ์</th>
+            <th class="num">ลิตร/สัปดาห์</th>
+            <th class="num">ลิตร/เดือน</th>
+            <th class="num">ต้นทุน LXML (USD)</th>
+            <th class="num">ต้นทุน NTP (USD)</th>
+            <th class="num">ประหยัด (USD)</th>
+            <th class="center">ข้อสรุป</th>
+          </tr>
+        </thead>
+        <tbody id="miningTable"></tbody>
+      </table>
+    </div>
+
+    <div class="section-title">📅 ตารางสั่งล่วงหน้า (Advance Order Schedule)</div>
+    <div class="data-table">
+      <table>
+        <thead>
+          <tr>
+            <th>สัปดาห์</th>
+            <th class="center">PO Date</th>
+            <th class="center">Delivery</th>
+            <th class="num">ปริมาณ (L)</th>
+            <th>Supplier ที่เลือก</th>
+            <th>Checkpoint / เงื่อนไข</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><b>W-2</b> (ล่วงหน้า 2 สัปดาห์)</td>
+            <td class="center">W-2</td>
+            <td class="center">W-0</td>
+            <td class="num">325,000</td>
+            <td>ตามคำแนะนำ Dashboard</td>
+            <td>จันทร์ W-2 (LXML), พฤหัส (NTP)</td>
+          </tr>
+          <tr>
+            <td><b>W-1</b> (ล่วงหน้า 1 สัปดาห์)</td>
+            <td class="center">W-1</td>
+            <td class="center">W-0 / พุธ W-0</td>
+            <td class="num">350,000</td>
+            <td>Re-confirm Supplier</td>
+            <td>LXML จันทร์, NTP พฤหัส ยืนยันราคา</td>
+          </tr>
+          <tr style="background:#fef3c7">
+            <td><b>W-0</b> (สัปดาห์ใช้งาน)</td>
+            <td class="center">—</td>
+            <td class="center">ตลอดสัปดาห์</td>
+            <td class="num">325,000</td>
+            <td>ตามข้อสรุป W-1</td>
+            <td>ปรับปริมาณตามสถานการณ์จริง</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="section-title">💡 ข้อเสนอเชิงกลยุทธ์ (Executive Recommendations)</div>
+    <ul class="rec-list">
+      <li><span class="num">1</span><span>ปัจจุบัน LXML > NTP: สั่ง <b>NTP Direct 100%</b> รายสัปดาห์ ประหยัด ~67,000–71,000 USD/เดือน</span></li>
+      <li><span class="num">2</span><span>หาก LXML = NTP (รวม VAT เท่ากัน): แบ่ง <b>60% LXML / 40% NTP</b> ลดความเสี่ยง Supplier รายเดียว</span></li>
+      <li><span class="num">3</span><span>Mining ล่วงหน้า ≥ 2 สัปดาห์ (Buffer 1.0–1.5 สัปดาห์) ป้องกัน Stock-Out</span></li>
+      <li><span class="num">4</span><span>PO ล่วงหน้าจันทร์ (LXML) Re-confirm พฤหัส (NTP) ตามแผน Weekly Strategy</span></li>
+      <li><span class="num">5</span><span>LXML ขอ <b>Frame Contract</b> ล่วงหน้า 4 สัปดาห์ ระบุ Volume 1.3–1.5 ล้านลิตร เพื่อลด Markup หรือขอ Price Cap</span></li>
+      <li><span class="num">6</span><span>หาก PV Oil + เชื้อไฟลาว (ก่อน VAT) รวมไม่เกิน 2.346 USD/ลิตร → <b>สลับมาสั่ง LXML ทันที</b></span></li>
+    </ul>
+  </section>
+
+  <section id="manual" class="tab-panel">
+    <div class="alert-box">
+      📖 <b>คู่มือการใช้งาน</b>: Dashboard นี้ทำงานบน Browser · ข้อมูลบันทึกลงเครื่อง · Backup/Restore ผ่านไฟล์ JSON
+    </div>
+
+    <div class="section-title">🎨 ความหมายของสีต่างๆ</div>
+    <div class="data-table">
+      <table>
+        <thead><tr><th>สี</th><th>ความหมาย</th><th>ตัวอย่างการใช้</th></tr></thead>
+        <tbody>
+          <tr><td><span class="pill pill-ntp">🔵 น้ำเงิน</span></td><td>NTP Direct (Supplier หลัก)</td><td>KPI Card, กราฟ NTP</td></tr>
+          <tr><td><span class="pill pill-lxml">🟡 เหลือง/ส้ม</span></td><td>LXML (PV Oil + เชื้อไฟลาว)</td><td>KPI Card, กราฟ LXML</td></tr>
+          <tr><td><span class="pill pill-save">🟢 เขียว</span></td><td>ประหยัด / ผลลัพธ์ที่ดี</td><td>ยอดประหยัด, สถานะ Optimal</td></tr>
+          <tr><td><span class="pill pill-loss">🔴 แดง</span></td><td>เฝ้าระวัง / Stock Out</td><td>สต็อกต่ำ, ราคาแพง</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="section-title">🔄 ขั้นตอนการใช้งานรายสัปดาห์</div>
+    <ul class="rec-list">
+      <li><span class="num">1</span><span><b>วันจันทร์เช้า</b>: ไปที่ Tab "ราคา & คำนวณ" → อัปเดตราคา PV Oil + เชื้อไฟลาว (LXML)</span></li>
+      <li><span class="num">2</span><span><b>วันจันทร์สาย</b>: ดู Tab "ภาพรวม" → ดูคำแนะนำ → สั่งซื้อตามคำแนะนำ</span></li>
+      <li><span class="num">3</span><span><b>ระหว่างสัปดาห์</b>: ติดตามและควบคุมการสั่งซื้อให้เป็นไปตามแผนการที่ประเมินไว้</span></li>
+      <li><span class="num">4</span><span><b>วันพฤหัสเช้า</b>: ไปที่ Tab "ราคา & คำนวณ" → อัปเดตราคา NTP</span></li>
+      <li><span class="num">5</span><span><b>วันพฤหัสสาย</b>: ดู Tab "กลยุทธ์รายสัปดาห์" → คำแนะนำ CP2 → สั่งซื้อ</span></li>
+      <li><span class="num">6</span><span><b>ปลายสัปดาห์</b>: สรุปยอดและเตรียมการประเมินรอบบิลสำหรับสัปดาห์ถัดไป</span></li>
+      <li><span class="num">7</span><span><b>สิ้นเดือน</b>: ดู Tab "สรุปสิ้นเดือน" → ยอดหักค่างาน → ส่งให้ LXML</span></li>
+    </ul>
+
+    <div class="section-title">🔢 สูตรคำนวณหลัก</div>
+    <div class="data-table">
+      <table>
+        <thead><tr><th>สูตร</th><th>คำอธิบาย</th><th>หมายเหตุ</th></tr></thead>
+        <tbody>
+          <tr><td><b>LXML Landed Cost</b></td><td>(PV Oil + เชื้อไฟลาว) ÷ 2</td><td>รวม VAT แล้ว</td></tr>
+          <tr><td><b>NTP Effective Cost</b></td><td>NTP × (1 + 2%)</td><td>Markup 2% Admin Fee</td></tr>
+          <tr><td><b>ส่วนต่าง</b></td><td>LXML − NTP Effective</td><td>บวก = NTP ถูกกว่า</td></tr>
+          <tr><td><b>% ประหยัด</b></td><td>ส่วนต่าง ÷ LXML</td><td>% ที่ประหยัดจริง</td></tr>
+          <tr><td><b>Break-Even</b></td><td>LXML = NTP × 1.02</td><td>จุดคุ้มทุน Markup</td></tr>
+          <tr><td><b>ต้นทุน/วัน</b></td><td>ปริมาณ × ราคา/L</td><td>USD/วัน</td></tr>
+          <tr><td><b>ต้นทุน/เดือน</b></td><td>ต้นทุน/วัน × 30</td><td>USD/เดือน</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="section-title">💾 Backup & Restore</div>
+    <div class="alert-box success">
+      <b>Backup</b>: คลิกปุ่ม 💾 Backup บน Header → ดาวน์โหลดไฟล์ JSON เก็บไว้ในเครื่อง<br>
+      <b>Restore</b>: คลิกปุ่ม 📂 Restore → เลือกไฟล์ JSON ที่ backup ไว้ → ข้อมูลกลับมาทันที<br>
+      <b>Print</b>: คลิกปุ่ม 🖨️ พิมพ์ → พิมพ์ทุก Tab เป็น PDF
+    </div>
+  </section>
+
+</main>
+
+<script>
+// ========================================
+// API SETTINGS
+// ========================================
+const API_URL = 'https://script.google.com/macros/s/AKfycbwp-ijTu2p3dg8K3E1hyctBlRdh9UV03EXEA_3N4zDZvkd6Ty5CKBLC3SJ3Cg5YMu9JJA/exec';
+
+// ========================================
+// STATE & CONSTANTS
+// ========================================
+const STORAGE_KEY = 'thaidrill_fuel_dashboard';
+let state = {
+  prices: { ntp: 1.2650, pv: 1.3374, eucalyptus: 1.3374, markup: 2.00 },
+  volumes: { min: 45000, avg: 48500, max: 52000 },
+  numDays: 30,
+  openingStock: 244019,
+  revenue: { perFeed: 8400, count: 15 },
+  daily: []
+};
+
+// Generate June 2026 sample data
+function generateInitialDaily() {
+  const days = [];
+  const startDate = new Date(2026, 5, 1);
+  const thaiDays = ['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัส','ศุกร์','เสาร์'];
+  for (let i = 0; i < 30; i++) {
+    const d = new Date(startDate);
+    d.setDate(d.getDate() + i);
+    const dow = d.getDay();
+    const dayName = thaiDays[dow];
+    let supplier = '', price = 0, qtyOrder = 0, qtyUse = 0;
+    if (i < 7) {
+      if (i % 2 === 0) {
+        supplier = 'NTP';
+        price = 1.2650;
+        qtyOrder = i === 0 ? 60000 : (i === 4 ? 40000 : 0);
+        qtyUse = 47000 + Math.floor(Math.random() * 5000);
+      } else {
+        supplier = 'NTP';
+        price = 1.2650;
+        qtyOrder = 0;
+        qtyUse = 46000 + Math.floor(Math.random() * 5000);
+      }
+    }
+    days.push({
+      date: d.toISOString().split('T')[0],
+      day: dayName,
+      supplier, price, qtyOrder, qtyUse,
+      note: ''
+    });
+  }
+  return days;
+}
+
+// ========================================
+// PERSISTENT STORAGE
+// ========================================
+function loadState() {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      state = { ...state, ...parsed };
+    } else {
+      state.daily = generateInitialDaily();
+    }
+  } catch (e) {
+    state.daily = generateInitialDaily();
+  }
+}
+
+function saveState() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  } catch (e) {
+    console.error('Save failed:', e);
+  }
+}
+
+// ========================================
+// CALCULATIONS
+// ========================================
+function calc() {
+  const lxml = (state.prices.pv + state.prices.eucalyptus) / 2;
+  const ntpEff = state.prices.ntp * (1 + state.prices.markup / 100);
+  const diff = lxml - ntpEff;
+  const pctSave = diff / lxml;
+  return { lxml, ntpEff, diff, pctSave };
+}
+
+function fmtUSD(n, dec = 2) {
+  return '$' + n.toLocaleString('en-US', { minimumFractionDigits: dec, maximumFractionDigits: dec });
+}
+
+function fmtNum(n) {
+  return n.toLocaleString('en-US', { maximumFractionDigits: 0 });
+}
+
+// ========================================
+// FETCH ALL DATA (Stock, Prices, Daily, Assumptions)
+// ========================================
+async function fetchAllData() {
+  const stockEl  = document.getElementById('kpiStock');
+  const subEl    = document.getElementById('kpiStockSub');
+  const statusEl = document.getElementById('kpiStockStatus');
+  const cardEl   = document.getElementById('stockCard');
+
+  stockEl.innerHTML    = '<span class="loading-text">กำลังโหลด...</span>';
+  subEl.textContent    = 'กำลังซิงค์ข้อมูลจาก Google Sheets...';
+  statusEl.textContent = 'กำลังเชื่อมต่อ...';
+  statusEl.className   = 'kpi-status status-warn';
+
+  try {
+    // ดึงข้อมูลทั้งหมดผ่าน action=summary
+    const response = await fetch(API_URL + '?action=summary', {
+      method:   'GET',
+      redirect: 'follow',
+      cache:    'no-cache'
+    });
+
+    if (!response.ok) throw new Error(`HTTP ${response.status} — ${response.statusText}`);
+
+    const raw = await response.text();
+    let data;
+    try {
+      data = JSON.parse(raw);
+    } catch (_) {
+      throw new Error(`Response ไม่ใช่ JSON`);
+    }
+
+    if (data.error) throw new Error(`GAS Error: ${data.error}`);
+
+    // --- 1. อัปเดตข้อมูล Stock ---
+    const currentStock = parseFloat(data.stock) || 0;
+    updateStockUI(currentStock);
+
+    // --- 2. อัปเดตราคา และ Assumptions ---
+    if (data.prices) {
+      if (data.prices.prices) {
+        state.prices.ntp = data.prices.prices.ntp || state.prices.ntp;
+        state.prices.pv = data.prices.prices.pvOil || state.prices.pv;
+        state.prices.eucalyptus = data.prices.prices.eucalyptus || state.prices.eucalyptus;
+        
+        // อัปเดตค่าลงในช่อง Input
+        document.getElementById('priceNTP').value = state.prices.ntp;
+        document.getElementById('pricePV').value = state.prices.pv;
+        document.getElementById('priceEucalyptus').value = state.prices.eucalyptus;
+      }
+      if (data.prices.assumptions) {
+        state.prices.markup = data.prices.assumptions.markup || state.prices.markup;
+        state.volumes.min = data.prices.assumptions.volMin || state.volumes.min;
+        state.volumes.max = data.prices.assumptions.volMax || state.volumes.max;
+        state.numDays = data.prices.assumptions.daysPerMonth || state.numDays;
+
+        // อัปเดตค่าลงในช่อง Input
+        document.getElementById('markup').value = state.prices.markup;
+        document.getElementById('volMin').value = state.volumes.min;
+        document.getElementById('volMax').value = state.volumes.max;
+        document.getElementById('numDays').value = state.numDays;
+      }
+    }
+
+    // --- 3. อัปเดตข้อมูลรายวัน (Daily Log) สำหรับวาดกราฟและตาราง ---
+    if (data.daily && Array.isArray(data.daily) && data.daily.length > 0) {
+      state.daily = data.daily.map(d => ({
+        date: d.date,
+        day: d.dayName,
+        supplier: d.supplier,
+        price: d.pricePerLiter,
+        qtyOrder: d.qtyOrder,
+        qtyUse: d.qtyUseTotal, // ใช้ปริมาณการใช้งานรวม
+        note: d.note
+      }));
+    }
+
+    // บันทึก State และสั่ง Render UI ใหม่ทั้งหมดเพื่อให้กราฟและตัวเลขเปลี่ยนตามข้อมูลจริง
+    saveState();
+    renderAll();
+    
+    // แจ้งเตือนสถานะความสำเร็จชั่วคราว แล้วกลับไปแสดงสถานะ Stock
+    statusEl.className = 'kpi-status status-good';
+    statusEl.textContent = '✓ ซิงค์ข้อมูลสมบูรณ์';
+    setTimeout(() => {
+        updateStockUI(currentStock);
+    }, 3000);
+
+  } catch (error) {
+    console.error('[fetchAllData]', error);
+    stockEl.innerHTML = `<span style="color:#dc2626;font-size:13px;line-height:1.4;display:block">${error.message}</span>`;
+    subEl.textContent  = 'เชื่อมต่อล้มเหลว — ตรวจสอบ API ของ Thaidrill';
+    statusEl.className = 'kpi-status status-bad';
+    statusEl.textContent = '🔴 ล้มเหลว — กด Refresh';
+    cardEl.style.borderLeftColor = '#ef4444';
+  }
+}
+
+function updateStockUI(currentStock) {
+    const stockEl = document.getElementById('kpiStock');
+    const subEl = document.getElementById('kpiStockSub');
+    const statusEl = document.getElementById('kpiStockStatus');
+    const cardEl = document.getElementById('stockCard');
+
+    stockEl.innerHTML = fmtNum(currentStock);
+    
+    const usagePerDay = 48500;
+    const daysLeft = (currentStock / usagePerDay).toFixed(1);
+    subEl.textContent = `ลิตร · ใช้ได้ ~${daysLeft} วัน (@48,500 L/วัน)`;
+    
+    if (daysLeft < 3) {
+        cardEl.style.background = 'linear-gradient(135deg, #fef2f2, #fee2e2)';
+        cardEl.style.borderLeftColor = '#ef4444'; 
+        stockEl.style.color = '#dc2626';
+        statusEl.className = 'kpi-status status-bad';
+        statusEl.textContent = '🔴 ระวัง Stock Out';
+    } else if (daysLeft <= 5) {
+        cardEl.style.background = 'white';
+        cardEl.style.borderLeftColor = '#f59e0b'; 
+        stockEl.style.color = '#f59e0b';
+        statusEl.className = 'kpi-status status-warn';
+        statusEl.textContent = '⚠ เตรียมสั่งเพิ่ม';
+    } else {
+        cardEl.style.background = 'white';
+        cardEl.style.borderLeftColor = '#10b981'; 
+        stockEl.style.color = '#10b981';
+        statusEl.className = 'kpi-status status-good';
+        statusEl.textContent = '✓ สต็อกปลอดภัย';
+    }
+}
+
+// ========================================
+// RENDER FUNCTIONS
+// ========================================
+function renderKPI() {
+  const c = calc();
+
+  // --- NTP ---
+  document.getElementById('kpiNTP').textContent = fmtUSD(state.prices.ntp, 4);
+  document.getElementById('kpiNTPSub').textContent =
+    `USD/ลิตร · Effective รวม Markup ${state.prices.markup}%: ${fmtUSD(c.ntpEff, 4)}`;
+
+  // --- LXML (เชื้อไฟลาว) ---
+  document.getElementById('kpiLXML').textContent = fmtUSD(state.prices.eucalyptus, 4);
+  document.getElementById('kpiLXMLSub').textContent = `USD/ลิตร · ราคาเชื้อไฟลาว`;
+
+  // --- PV Oil ---
+  document.getElementById('kpiPVOil').textContent = fmtUSD(state.prices.pv, 4);
+  document.getElementById('kpiPVOilSub').textContent = `USD/ลิตร · ราคา PV Oil`;
+
+  // --- Status badges: เปรียบทีละตัวกับ NTP Effective ---
+  function setStatus(elId, price, refPrice, refName) {
+    const el  = document.getElementById(elId);
+    const pct = Math.abs((price - refPrice) / refPrice * 100).toFixed(2);
+    if (price < refPrice) {
+      el.className   = 'kpi-status status-good';
+      el.textContent = `✓ ถูกกว่า ${refName} ${pct}%`;
+    } else if (price > refPrice) {
+      el.className   = 'kpi-status status-warn';
+      el.textContent = `⚠ แพงกว่า ${refName} ${pct}%`;
+    } else {
+      el.className   = 'kpi-status status-warn';
+      el.textContent = `= ราคาเท่ากับ ${refName}`;
+    }
+  }
+
+  // เปรียบแต่ละราคากับ NTP Effective
+  const allPrices = [
+    { name: 'NTP',    price: c.ntpEff },
+    { name: 'LXML',   price: state.prices.eucalyptus },
+    { name: 'PV Oil', price: state.prices.pv }
+  ];
+  const sorted    = [...allPrices].sort((a, b) => a.price - b.price);
+  const cheapest  = sorted[0];
+  const ntpEl     = document.getElementById('kpiNTPStatus');
+  const ntpPct    = Math.abs((c.ntpEff - cheapest.price) / cheapest.price * 100).toFixed(2);
+
+  if (cheapest.name === 'NTP') {
+    ntpEl.className   = 'kpi-status status-good';
+    ntpEl.textContent = `✓ ถูกที่สุด`;
+  } else {
+    ntpEl.className   = 'kpi-status status-warn';
+    ntpEl.textContent = `⚠ แพงกว่า ${cheapest.name} ${ntpPct}%`;
+  }
+  setStatus('kpiLXMLStatus',   state.prices.eucalyptus, c.ntpEff, 'NTP Eff');
+  setStatus('kpiPVOilStatus',  state.prices.pv,         c.ntpEff, 'NTP Eff');
+
+  // --- ประหยัด: ถูกสุด vs รองลงมา × ปริมาณ × จำนวนวัน ---
+  const second   = sorted[1];
+  const savings  = (second.price - cheapest.price) * state.volumes.avg * state.numDays;
+  document.getElementById('kpiSave').textContent   = fmtUSD(savings, 0);
+  document.getElementById('kpiSaveSub').textContent =
+    `${cheapest.name} vs ${second.name} · ${fmtNum(state.volumes.avg)} L/วัน × ${state.numDays} วัน`;
+  const saveStatus = document.getElementById('kpiSaveStatus');
+  saveStatus.className   = 'kpi-status status-good';
+  saveStatus.textContent = `✓ เลือก ${cheapest.name} ประหยัดสุด`;
+
+  // Friday แก้ไข: เอาการเรียก API ออกจากจุดนี้ เพื่อป้องกันการยิง API รัวๆ เวลาพิมพ์ราคาน้ำมัน
+}
+
+function renderScenarios() {
+  const c = calc();
+  const tbody = document.getElementById('scenarioTable');
+  const scenarios = [
+    { label: 'ต่ำสุด (Min)', vol: state.volumes.min, color: '' },
+    { label: 'เฉลี่ย (Avg)', vol: state.volumes.avg, color: 'background:#fef3c7;' },
+    { label: 'สูงสุด (Max)', vol: state.volumes.max, color: '' }
+  ];
+  tbody.innerHTML = scenarios.map(s => `
+    <tr style="${s.color}">
+      <td><b>${s.label}</b></td>
+      <td class="num">${fmtNum(s.vol)}</td>
+      <td class="num">${fmtUSD(s.vol * c.lxml)}</td>
+      <td class="num">${fmtUSD(s.vol * c.ntpEff)}</td>
+      <td class="num text-up">${fmtUSD(s.vol * c.diff)}</td>
+      <td class="num text-up"><b>${fmtUSD(s.vol * c.diff * 30, 0)}</b></td>
+      <td class="center"><span class="pill ${c.diff > 0 ? 'pill-save' : 'pill-loss'}">${c.diff > 0 ? '✓ NTP ถูกกว่า' : '🔴 LXML ถูกกว่า'}</span></td>
+    </tr>
+  `).join('');
+}
+
+function renderCalcTable() {
+  const c = calc();
+  const tbody = document.getElementById('calcTable');
+  const rows = [
+    ['LXML Landed Cost', '(PV Oil + เชื้อไฟลาว) ÷ 2', c.lxml, 'USD/L', c.diff < 0 ? '✓ ถูกกว่า NTP' : '🔴 แพงกว่า NTP', c.diff < 0 ? 'pill-save' : 'pill-loss'],
+    ['NTP Direct Effective', 'NTP × (1 + Markup 2%)', c.ntpEff, 'USD/L', c.diff > 0 ? '✓ ถูกกว่า LXML' : '🔴 แพงกว่า LXML', c.diff > 0 ? 'pill-save' : 'pill-loss'],
+    ['ส่วนต่าง (LXML − NTP)', 'Effective Cost Difference', c.diff, 'USD/L', c.diff > 0 ? '✓ NTP ถูกกว่า' : '🔴 LXML ถูกกว่า', c.diff > 0 ? 'pill-save' : 'pill-loss'],
+    ['% ที่ NTP ถูกกว่า', 'ส่วนต่าง ÷ LXML', c.pctSave * 100, '%', c.pctSave > 0.02 ? '✓ คุ้มค่า เกิน Break-even' : '⚠ ใกล้ Break-even', c.pctSave > 0.02 ? 'pill-save' : 'pill-loss']
+  ];
+  tbody.innerHTML = rows.map(r => `
+    <tr>
+      <td><b>${r[0]}</b></td>
+      <td>${r[1]}</td>
+      <td class="num"><b>${r[3] === '%' ? r[2].toFixed(2) + '%' : fmtUSD(r[2], 4)}</b></td>
+      <td>${r[3]}</td>
+      <td class="center"><span class="pill ${r[5]}">${r[4]}</span></td>
+    </tr>
+  `).join('');
+}
+
+function renderVolTable() {
+  const c = calc();
+  const tbody = document.getElementById('volTable');
+  const vols = [10000, 50000, 100000, 500000, 1000000];
+  tbody.innerHTML = vols.map(v => `
+    <tr>
+      <td class="num"><b>${fmtNum(v)}</b></td>
+      <td class="num">${fmtUSD(c.diff, 4)}</td>
+      <td class="num text-up"><b>${fmtUSD(v * c.diff)}</b></td>
+      <td class="num">${(c.pctSave * 100).toFixed(2)}%</td>
+      <td class="center"><span class="pill ${c.diff > 0 ? 'pill-save' : 'pill-loss'}">${c.diff > 0 ? '✓ ประหยัด' : '🔴 ขาดทุน'}</span></td>
+    </tr>
+  `).join('');
+}
+
+function renderMonthEndSummary() {
+  let runningStock = state.openingStock;
+  let totalOrder = 0, totalVal = 0, totalUse = 0, totalMarkup = 0, totalNet = 0;
+  let lxmlOrder = 0, lxmlVal = 0;
+  let ntpOrder = 0, ntpVal = 0, ntpMarkup = 0;
+
+  state.daily.forEach(d => {
+    const price = parseFloat(d.price) || 0;
+    const qtyO = parseFloat(d.qtyOrder) || 0;
+    const qtyU = parseFloat(d.qtyUse) || 0;
+    const valO = price * qtyO;
+    const mk = d.supplier === 'NTP' ? valO * 0.02 : 0;
+
+    runningStock += qtyO - qtyU;
+    totalOrder += qtyO;
+    totalVal += valO;
+    totalUse += qtyU;
+    totalMarkup += mk;
+    totalNet += valO + mk;
+
+    if (d.supplier === 'LXML') { lxmlOrder += qtyO; lxmlVal += valO; }
+    else if (d.supplier === 'NTP') { ntpOrder += qtyO; ntpVal += valO; ntpMarkup += valO * 0.02; }
+  });
+
+  const lxmlTotal = lxmlVal;
+  const ntpTotal = ntpVal + ntpMarkup;
+  const grandTotal = lxmlTotal + ntpTotal;
+
+  const monthEndTable = document.getElementById('monthEndTable');
+  if (monthEndTable) {
+    monthEndTable.innerHTML = `
+      <tr>
+        <td><b>LXML — น้ำมัน PV Oil + เชื้อไฟลาว</b></td>
+        <td class="num">${fmtNum(lxmlOrder)}</td>
+        <td class="num">${fmtUSD(lxmlVal)}</td>
+        <td class="num">$0.00</td>
+        <td class="num"><b>${fmtUSD(lxmlTotal)}</b></td>
+        <td>หักตรงจากค่างาน</td>
+      </tr>
+      <tr>
+        <td><b>NTP Direct — น้ำมัน</b></td>
+        <td class="num">${fmtNum(ntpOrder)}</td>
+        <td class="num">${fmtUSD(ntpVal)}</td>
+        <td class="num">${fmtUSD(ntpMarkup)}</td>
+        <td class="num"><b>${fmtUSD(ntpTotal)}</b></td>
+        <td>หักผ่าน LXML + Markup 2%</td>
+      </tr>
+      <tr style="background:#fef3c7;font-weight:700">
+        <td>รวมยอดหักค่างาน</td>
+        <td class="num">${fmtNum(lxmlOrder + ntpOrder)}</td>
+        <td class="num">${fmtUSD(lxmlVal + ntpVal)}</td>
+        <td class="num">${fmtUSD(ntpMarkup)}</td>
+        <td class="num"><b>${fmtUSD(grandTotal)}</b></td>
+        <td>LXML หักจาก Thaidrill ปลายเดือน</td>
+      </tr>
+    `;
+  }
+
+  const totalRev = state.revenue.perFeed * state.revenue.count;
+  document.getElementById('totalRev').textContent = fmtUSD(totalRev, 0);
+  document.getElementById('totalFuel').textContent = fmtUSD(grandTotal, 0);
+  document.getElementById('fuelRatio').textContent = totalRev > 0 ? ((grandTotal / totalRev) * 100).toFixed(2) + '%' : '0%';
+  document.getElementById('netRev').textContent = fmtUSD(totalRev - grandTotal, 0);
+}
+
+function renderWeekly() {
+  const c = calc();
+  document.getElementById('cp1Lxml').textContent = fmtUSD(c.lxml, 4);
+  document.getElementById('cp1Ntp').textContent = fmtUSD(c.ntpEff, 4);
+  document.getElementById('cp2Lxml').textContent = fmtUSD(c.lxml, 4);
+  document.getElementById('cp2Ntp').textContent = fmtUSD(c.ntpEff, 4);
+
+  const cheaper = c.diff > 0 ? 'NTP' : 'LXML';
+  const cheaperPrice = c.diff > 0 ? c.ntpEff : c.lxml;
+  document.getElementById('cp1Rec').textContent = `สั่ง ${cheaper} 100%`;
+  document.getElementById('cp2Rec').textContent = `สั่ง ${cheaper} 100%`;
+
+  const vol3 = state.volumes.avg * 3;
+  const vol4 = state.volumes.avg * 4;
+  document.getElementById('cp1Vol').textContent = fmtNum(vol3) + ' L';
+  document.getElementById('cp2Vol').textContent = fmtNum(vol4) + ' L';
+  document.getElementById('cp1Val').textContent = fmtUSD(vol3 * cheaperPrice, 0);
+  document.getElementById('cp2Val').textContent = fmtUSD(vol4 * cheaperPrice, 0);
+
+  const monWedVal = vol3 * cheaperPrice;
+  const thuSunVal = vol4 * cheaperPrice;
+  document.getElementById('weekMonWed').textContent = fmtUSD(monWedVal, 0);
+  document.getElementById('weekThuSun').textContent = fmtUSD(thuSunVal, 0);
+  document.getElementById('weekTotal').textContent = fmtUSD(monWedVal + thuSunVal, 0);
+
+  const days = [
+    ['จันทร์', 'LXML ปรับ', '⭐ CP1', 'LXML ประกาศใหม่ → เทียบ NTP เดิม → เลือกถูกกว่า', state.volumes.avg * 3, 'bg-warn'],
+    ['อังคาร', 'คงที่', '—', 'ใช้ราคา LXML จันทร์ เทียบ NTP เดิม', state.volumes.avg, ''],
+    ['พุธ', 'คงที่', '—', 'วันสุดท้ายก่อน NTP ปรับ — ยืนยันคำสั่ง Mon-Wed', state.volumes.avg, ''],
+    ['พฤหัส', 'NTP ปรับ', '⭐ CP2', 'NTP ประกาศใหม่ → เทียบ LXML จันทร์ → เลือกถูกกว่า', state.volumes.avg * 4, 'bg-warn'],
+    ['ศุกร์', 'คงที่', '—', 'ใช้ราคา NTP พฤหัส เทียบ LXML จันทร์', state.volumes.avg, ''],
+    ['เสาร์', 'คงที่', '—', 'ใช้ราคาเดิมจากพฤหัส', state.volumes.avg, ''],
+    ['อาทิตย์', 'คงที่', '—', 'วันสุดท้ายก่อน LXML ปรับใหม่ — เตรียมข้อมูล', state.volumes.avg, '']
+  ];
+  document.getElementById('weeklyTable').innerHTML = days.map(d => `
+    <tr style="${d[5] === 'bg-warn' ? 'background:#fef3c7' : ''}">
+      <td><b>${d[0]}</b></td>
+      <td>${d[1]}</td>
+      <td><b>${d[2]}</b></td>
+      <td>${d[3]}</td>
+      <td class="num">${fmtNum(d[4])}</td>
+    </tr>
+  `).join('');
+}
+
+function renderMining() {
+  const c = calc();
+  const mining = [
+    { label: 'Low (ต่ำสุด)', lpw: 300000, color: '' },
+    { label: 'Avg (เฉลี่ย)', lpw: 325000, color: 'background:#fef3c7;' },
+    { label: 'High (สูงสุด)', lpw: 350000, color: '' }
+  ];
+  document.getElementById('miningTable').innerHTML = mining.map(m => {
+    const monthly = m.lpw * 4.33;
+    const lxmlCost = monthly * c.lxml;
+    const ntpCost = monthly * c.ntpEff;
+    const save = lxmlCost - ntpCost;
+    return `
+      <tr style="${m.color}">
+        <td><b>${m.label}</b></td>
+        <td class="num">${fmtNum(m.lpw)}</td>
+        <td class="num">${fmtNum(monthly)}</td>
+        <td class="num">${fmtUSD(lxmlCost)}</td>
+        <td class="num">${fmtUSD(ntpCost)}</td>
+        <td class="num text-up"><b>${fmtUSD(save)}</b></td>
+        <td class="center"><span class="pill ${save > 0 ? 'pill-save' : 'pill-loss'}">${save > 0 ? '✓ NTP ประหยัดกว่า' : '🔴 LXML ประหยัดกว่า'}</span></td>
+      </tr>
+    `;
+  }).join('');
+}
+
+// ========================================
+// CHARTS
+// ========================================
+let charts = {};
+
+function renderCharts() {
+  const c = calc();
+  Object.values(charts).forEach(ch => ch && ch.destroy());
+
+  const dates = state.daily.map(d => new Date(d.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }));
+  const eucalyptusPrices = state.daily.map((d, i) => state.prices.eucalyptus + Math.sin(i / 3) * 0.015 + (Math.random() - 0.5) * 0.01);
+  const pvPrices         = state.daily.map((d, i) => state.prices.pv          + Math.sin(i / 3.5) * 0.013 + (Math.random() - 0.5) * 0.01);
+  const ntpPrices        = state.daily.map((d, i) => c.ntpEff                 + Math.cos(i / 4) * 0.012 + (Math.random() - 0.5) * 0.01);
+
+  charts.line = new Chart(document.getElementById('lineChart'), {
+    type: 'line',
+    data: {
+      labels: dates,
+      datasets: [
+        {
+          label: 'เชื้อไฟลาว',
+          data: eucalyptusPrices,
+          borderColor: '#f59e0b',
+          backgroundColor: 'rgba(245, 158, 11, 0.08)',
+          borderWidth: 2.5,
+          fill: false,
+          tension: 0.4,
+          pointRadius: 0,
+          pointHoverRadius: 5
+        },
+        {
+          label: 'PV Oil',
+          data: pvPrices,
+          borderColor: '#ef4444',
+          backgroundColor: 'rgba(239, 68, 68, 0.08)',
+          borderWidth: 2.5,
+          fill: false,
+          tension: 0.4,
+          pointRadius: 0,
+          pointHoverRadius: 5
+        },
+        {
+          label: 'NTP Effective Cost',
+          data: ntpPrices,
+          borderColor: '#3b82f6',
+          backgroundColor: 'rgba(59, 130, 246, 0.1)',
+          borderWidth: 2.5,
+          fill: true,
+          tension: 0.4,
+          pointRadius: 0,
+          pointHoverRadius: 5
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'bottom', labels: { font: { family: 'Sarabun', size: 12 } } },
+        tooltip: { callbacks: { label: (ctx) => ctx.dataset.label + ': $' + ctx.parsed.y.toFixed(4) } }
+      },
+      scales: {
+        y: { ticks: { callback: (v) => '$' + v.toFixed(3), font: { family: 'Sarabun' } } },
+        x: { ticks: { font: { family: 'Sarabun', size: 10 }, maxRotation: 0 } }
+      }
+    }
+  });
+
+  let lxmlOrder = 0, ntpOrder = 0;
+  state.daily.forEach(d => {
+    const qty = parseFloat(d.qtyOrder) || 0;
+    if (d.supplier === 'LXML') lxmlOrder += qty;
+    else if (d.supplier === 'NTP') ntpOrder += qty;
+  });
+  const naOrder = Math.max(0, 100000 - lxmlOrder - ntpOrder);
+
+  charts.donut = new Chart(document.getElementById('donutChart'), {
+    type: 'doughnut',
+    data: {
+      labels: ['LXML', 'NTP', 'ยังไม่สั่ง'],
+      datasets: [{
+        data: [lxmlOrder || 1, ntpOrder || 1, naOrder || 1],
+        backgroundColor: ['#f59e0b', '#3b82f6', '#cbd5e1'],
+        borderColor: '#fff',
+        borderWidth: 3
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: '65%',
+      plugins: {
+        legend: { position: 'bottom', labels: { font: { family: 'Sarabun', size: 12 }, padding: 12 } },
+        tooltip: { callbacks: { label: (ctx) => ctx.label + ': ' + fmtNum(ctx.parsed) + ' L' } }
+      }
+    }
+  });
+
+  charts.pie = new Chart(document.getElementById('pieChart'), {
+    type: 'pie',
+    data: {
+      labels: ['Mon-LXML รอบ (จ-พ)', 'Thu-NTP รอบ (พฤ-อา)', 'รอ Checkpoint'],
+      datasets: [{
+        data: [3, 4, 0.5],
+        backgroundColor: ['#dc2626', '#f59e0b', '#10b981', '#3b82f6'],
+        borderColor: '#fff',
+        borderWidth: 3
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'bottom', labels: { font: { family: 'Sarabun', size: 11 }, padding: 10 } }
+      }
+    }
+  });
+
+  charts.bar = new Chart(document.getElementById('barChart'), {
+    type: 'bar',
+    data: {
+      labels: dates,
+      datasets: [{
+        label: 'ปริมาณเบิก (ลิตร)',
+        data: state.daily.map(d => parseFloat(d.qtyUse) || 0),
+        backgroundColor: state.daily.map((d, i) => {
+          const v = parseFloat(d.qtyUse) || 0;
+          if (v > 50000) return '#dc2626';
+          if (v > 48000) return '#f59e0b';
+          if (v > 0) return '#fbbf24';
+          return '#e2e8f0';
+        }),
+        borderRadius: 4
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: (ctx) => fmtNum(ctx.parsed.y) + ' ลิตร' } }
+      },
+      scales: {
+        y: { ticks: { callback: (v) => fmtNum(v), font: { family: 'Sarabun' } } },
+        x: { ticks: { font: { family: 'Sarabun', size: 10 }, maxRotation: 0 } }
+      }
+    }
+  });
+}
+
+// ========================================
+// EVENTS
+// ========================================
+function switchTab(btn, panelId) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById(panelId).classList.add('active');
+  if (panelId === 'overview') {
+    setTimeout(renderCharts, 100);
+  }
+}
+
+function attachPriceListeners() {
+  const fields = [
+    ['priceNTP', 'prices', 'ntp'],
+    ['pricePV', 'prices', 'pv'],
+    ['priceEucalyptus', 'prices', 'eucalyptus'],
+    ['markup', 'prices', 'markup'],
+    ['volMin', 'volumes', 'min'],
+    ['volAvg', 'volumes', 'avg'],
+    ['volMax', 'volumes', 'max'],
+    ['numDays', null, 'numDays'],
+    ['openingStock', null, 'openingStock'],
+    ['revPerFeed', 'revenue', 'perFeed'],
+    ['feedCount', 'revenue', 'count']
+  ];
+  fields.forEach(([id, group, key]) => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.addEventListener('input', (e) => {
+        const val = parseFloat(e.target.value) || 0;
+        if (group) state[group][key] = val;
+        else state[key] = val;
+        saveState();
+        renderAll();
+      });
+    }
+  });
+}
+
+// ========================================
+// EXPORT CSV
+// ========================================
+function exportCSV() {
+  const headers = ['วันที่','วัน','Supplier','ราคา/ลิตร (USD)','ปริมาณสั่ง (L)','ปริมาณใช้ (L)','มูลค่า (USD)','หมายเหตุ'];
+  const rows = state.daily.map(d => {
+    const price = parseFloat(d.price) || 0;
+    const qtyO  = parseFloat(d.qtyOrder) || 0;
+    return [
+      d.date, d.day, d.supplier || '-', price.toFixed(4),
+      qtyO, parseFloat(d.qtyUse) || 0,
+      (price * qtyO).toFixed(2), d.note || ''
+    ];
+  });
+  const csv  = [headers, ...rows].map(r => r.join(',')).join('\n');
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `thaidrill_fuel_export_${new Date().toISOString().split('T')[0]}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ========================================
+// BACKUP / RESTORE
+// ========================================
+function backupData() {
+  const dataStr = JSON.stringify(state, null, 2);
+  const blob = new Blob([dataStr], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `thaidrill_fuel_backup_${new Date().toISOString().split('T')[0]}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  alert('✓ บันทึก Backup สำเร็จ');
+}
+
+function restoreData(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const data = JSON.parse(e.target.result);
+      state = { ...state, ...data };
+      saveState();
+      document.getElementById('priceNTP').value = state.prices.ntp;
+      document.getElementById('pricePV').value = state.prices.pv;
+      document.getElementById('priceEucalyptus').value = state.prices.eucalyptus;
+      document.getElementById('markup').value = state.prices.markup;
+      document.getElementById('volMin').value = state.volumes.min;
+      document.getElementById('volAvg').value = state.volumes.avg;
+      document.getElementById('volMax').value = state.volumes.max;
+      document.getElementById('numDays').value = state.numDays ?? 30;
+      document.getElementById('openingStock').value = state.openingStock;
+      document.getElementById('revPerFeed').value = state.revenue.perFeed;
+      document.getElementById('feedCount').value = state.revenue.count;
+      renderAll();
+      alert('✓ Restore ข้อมูลสำเร็จ');
+    } catch (err) {
+      alert('✗ Restore ล้มเหลว: ไฟล์ไม่ถูกต้อง');
+    }
+  };
+  reader.readAsText(file);
+}
+
+// ========================================
+// MAIN RENDER
+// ========================================
+function renderAll() {
+  renderKPI();
+  renderScenarios();
+  renderCalcTable();
+  renderVolTable();
+  renderMonthEndSummary(); 
+  renderWeekly();
+  renderMining();
+  renderCharts();
+}
+
+// ========================================
+// INIT
+// ========================================
+(function init() {
+  loadState();
+  document.getElementById('priceNTP').value = state.prices.ntp;
+  document.getElementById('pricePV').value = state.prices.pv;
+  document.getElementById('priceEucalyptus').value = state.prices.eucalyptus;
+  document.getElementById('markup').value = state.prices.markup;
+  document.getElementById('volMin').value = state.volumes.min;
+  document.getElementById('volAvg').value = state.volumes.avg;
+  document.getElementById('volMax').value = state.volumes.max;
+  document.getElementById('openingStock').value = state.openingStock;
+  document.getElementById('numDays').value = state.numDays ?? 30;
+  document.getElementById('revPerFeed').value = state.revenue.perFeed;
+  document.getElementById('feedCount').value = state.revenue.count;
+  attachPriceListeners();
+  renderAll();
+  
+  // เรียกดึงข้อมูลทั้งหมดจากระบบเซโปนเมื่อเปิดหน้าเว็บ
+  fetchAllData();
+})();
+</script>
+
+</body>
+</html>

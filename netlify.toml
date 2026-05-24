@@ -1,0 +1,4 @@
+[[redirects]]
+  from = "/api/gas"
+  to = "/.netlify/functions/gas-proxy"
+  status = 200

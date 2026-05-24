@@ -1,0 +1,37 @@
+✅ เสร็จแล้วครับ! Apps Script เวอร์ชัน 8 deploy แล้ว URL เดิมยังใช้ได้
+📡 Endpoints ทั้งหมด (8 รายการ)
+Endpointคืนขนาด Response?action=stockสต็อกเมื่อวานเล็ก ~50 bytes?action=sheetsรายชื่อชีตทั้ง 7 ชีต + metadataเล็ก ~500 bytes?action=sheet&name=ชื่อชีตดึงชีตเดียวเป็น 2D arrayกลาง?action=sheet&name=ชื่อชีต&formatted=trueดึงแบบ format ตามที่แสดงในชีตกลาง?action=sheet&name=ชื่อชีต&range=A1:E20ดึงเฉพาะช่วงที่กำหนดเล็ก?action=pricesราคา + assumptions (จัด format)เล็ก ~300 bytes?action=dailyข้อมูลรายวันทั้งหมด (เป็น object)กลาง ~20 KB?action=monthendชีต 6_MonthEnd_Payment (raw)กลาง?action=allทุกชีตทั้ง 7 ชีต ในครั้งเดียวใหญ่ ~50-100 KB?action=summarystock + prices + daily รวมกันกลาง
+💻 ตัวอย่างการใช้งานใน JS
+1. ดึงเฉพาะชีต 1_Price_Dashboard:
+javascriptfetch(API_URL + '?action=sheet&name=1_Price_Dashboard')
+  .then(r => r.json())
+  .then(data => {
+    console.log(data.name);    // "1_Price_Dashboard"
+    console.log(data.rows);    // 27
+    console.log(data.values);  // [["Thaidrill Laos...",...], [...], ...]
+  });
+2. ดึงทุกชีตทั้งสเปรดชีตในครั้งเดียว:
+javascriptfetch(API_URL + '?action=all')
+  .then(r => r.json())
+  .then(data => {
+    const allSheets = data.sheets;
+    allSheets['1_Price_Dashboard'].values  // 2D array
+    allSheets['5_Daily_Log'].values        // 2D array
+    allSheets['6_MonthEnd_Payment'].values // 2D array
+  });
+3. ดึงเฉพาะ range:
+javascriptfetch(API_URL + '?action=sheet&name=5_Daily_Log&range=A5:N40')
+4. ดึงค่าตามที่แสดงในชีต (รวมสูตร, format):
+javascriptfetch(API_URL + '?action=sheet&name=3_Decision_Summary&formatted=true')
+// จะได้ "1,945,917.00" แทน 1945917
+📊 รายชื่อชีตทั้งหมดที่ API รู้จัก
+#ชื่อgidRows × Cols11_Price_Dashboard17979785427 × 622_Cost_Projection208217780323 × 933_Decision_Summary50992583318 × 544_Weekly_Strategy44110234239 × 655_Daily_Log8122679879 × 1666_MonthEnd_Payment44065803924 × 677_BreakEven_AdvanceOrder170675013837 × 6
+💡 คำแนะนำการใช้งาน
+
+ใช้ ?action=all ถ้าต้องการข้อมูลครบทุกชีต — เรียกครั้งเดียวแล้ว cache ในเว็บ
+ใช้ ?action=sheet&name=... ถ้าต้องการเฉพาะบางชีต — เร็วกว่า
+ใช้ &range=A1:Z10 ถ้าต้องการเฉพาะบางช่วง — ลด bandwidth
+ใช้ &formatted=true ถ้าต้องการให้แสดงเป็นข้อความตามที่เห็นในชีต (เช่น "$1,234.56" แทน 1234.56)
+ใช้ ?action=stock สำหรับ widget สต็อก (ของเดิม ใช้ได้เหมือนเดิม)
+
+ต้องการให้ผมเขียน JS function ช่วยให้ Dashboard HTML ดึงข้อมูลเข้ามาแสดงอัตโนมัติเลยมั้ยครับ?
