@@ -1,0 +1,58 @@
+name: MES → Google Sheets
+
+# ============================================================
+# รัน GGSmes_report_fetcher.py บน GitHub Actions
+#
+# Secrets ที่ต้องตั้งใน repo (Settings → Secrets and variables → Actions):
+#   MES_EMAIL                     — อีเมล MES
+#   MES_PASSWORD                  — รหัสผ่าน MES
+#   GCP_SERVICE_ACCOUNT_JSON_B64  — service_account.json (base64-encoded)
+#
+# วิธี encode base64 บน Windows PowerShell:
+#   [Convert]::ToBase64String([IO.File]::ReadAllBytes("path\to\service_account.json")) | clip
+#   → paste ลง secret
+# ============================================================
+
+on:
+  # รันอัตโนมัติทุกวัน 8:00 น. กรุงเทพ (= 01:00 UTC)
+  schedule:
+    - cron: '0 1 * * *'
+  # รัน manual ได้จาก Actions tab
+  workflow_dispatch:
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install requests pandas numpy gspread oauth2client python-dotenv
+
+      - name: Decode service_account.json
+        run: |
+          echo "${{ secrets.GCP_SERVICE_ACCOUNT_JSON_B64 }}" | base64 -d > MES/MESpython/service_account.json
+          # ตรวจว่าไฟล์ valid JSON
+          python -c "import json; json.load(open('MES/MESpython/service_account.json'))"
+          echo "✅ service_account.json decoded ok"
+
+      - name: Run MES fetcher
+        env:
+          MES_EMAIL: ${{ secrets.MES_EMAIL }}
+          MES_PASSWORD: ${{ secrets.MES_PASSWORD }}
+        run: python MES/MESpython/GGSmes_report_fetcher.py
+
+      - name: Cleanup credentials
+        if: always()
+        run: rm -f MES/MESpython/service_account.json

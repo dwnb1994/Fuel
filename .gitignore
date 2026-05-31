@@ -1,0 +1,65 @@
+# ==========================================
+# 🔐 Secrets / Credentials — NEVER COMMIT
+# ==========================================
+.env
+.env.*
+!.env.example
+*.env
+
+# Google Cloud Service Account keys
+service_account.json
+GCP_CREDENTIALS_JSON.json
+fuel-mes-*.json
+*-service-account*.json
+*-credentials*.json
+
+# Firebase / auth tokens
+*refresh_token*
+*token*.json
+secrets/
+credentials/
+
+# Local notes / scratchpads ที่อาจมี secret
+MES/Match_*.txt
+MES/*notes*.txt
+*_scratch.txt
+TODO_secret*
+
+# ==========================================
+# 🐍 Python
+# ==========================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+.venv/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Local data output (CSV exports, logs, etc.)
+MES/MESpython/output/
+output/
+*.log
+
+# ==========================================
+# 🪟 OS / Editor
+# ==========================================
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+*.swp
+*~
+
+# ==========================================
+# 📦 Node / web
+# ==========================================
+node_modules/
+dist/
+.cache/
